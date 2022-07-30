@@ -1,0 +1,375 @@
+<html>
+<head>
+    <title>Projeto-Video</title>
+<style>
+    html, body {
+        max-height: 100%;
+        max-width: 100%;
+        border: 0;
+        outline: 0;
+        margin: 0;
+        box-sizing: content-box;
+    }
+
+    body {
+        background-color: #181818;
+        color: #f0f0f0;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+    }
+
+    video, canvas, img {
+        width: 100%;
+        border-style: solid;
+    }
+
+    .buttons {
+        color: #f0f0f0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .button {
+        width: 100%;
+        background-color: #303030;
+        padding: 1em;
+        user-select: none;        
+        font-size: 40px;
+        flex-direction: column;
+    }
+
+    #text {margin: 0.5em; font-size: 30px;}
+
+    .drawer {
+        flex: 0.7;
+        height: 100%;
+    }
+    .config {
+        flex: 0.3;
+    }
+</style>
+</head>
+<body>
+    <div class="drawer">
+        <video id="webcam" autoplay="true" loop="true"></video>
+        <img id="picture"></img>
+        <canvas id="parser"></canvas>
+        <canvas id="result"></canvas>
+    </div>
+    <div class="config">
+        <div id="text"></div>
+        <div class="buttons"></div>
+    </div>
+</body>
+<script src="/script.js"></script>
+<script>
+    const video = document.querySelector("#webcam");
+    const image = document.querySelector("#picture");
+    const canvas1 = document.querySelector("#parser");
+    const canvas2 = document.querySelector("#result");
+    const text = document.querySelector("#text");
+    const buttons = document.querySelector(".buttons");
+
+    function onSlider(mix, min, stp, callback) {
+        var s = document.createElement("input[type=range]");
+
+        s.classList.add("slider");
+
+        s.oninput(function() {callback(s.value)});
+    }
+
+    function onButton(name, callback) {
+        var b = document.createElement("div");
+
+        b.classList.add("button");
+
+        b.textContent = name;
+        b.onclick = callback;
+
+        document.addEventListener("keypress", function(event) {
+            if (event.key == name) {callback()}
+        });
+
+        buttons.appendChild(b);
+    }
+
+    onButton("q", function() {canvas2.requestFullscreen()});
+
+    var t = 25;
+
+    onButton("w", function() {t += 1});
+    onButton("s", function() {t -= 1});
+
+    function toHsl(r, g, b) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+
+        var cmax = Math.max(r, g, b);
+        var cmin = Math.min(r, g, b);
+        var d = cmax - cmin;
+        var angle = 0;
+
+        if (d == 0) {angle = 0}
+        else if (cmax = r) {angle = ((g - b)/d) % 6}
+        else if (cmax = g) {angle = (b - r)/d + 2}
+        else {angle = (r - g)/d + 4}
+
+        //angle = Math.round(angle);
+
+        return angle;
+    }
+
+    function getRGB(frame, i) {
+        return [frame[i], frame[i + 1], frame[i + 2]];
+    }
+
+    function getD(rgb, r, g, b) {
+        //return rgb[0] - r + rgb[1] - g + rgb[2] - b;
+        var a1 = rgb[0] - r;
+        var a2 = rgb[1] - g;
+        var a3 = rgb[2] - b;
+        if (a1 < 0) {a1 *= -1}
+        if (a2 < 0) {a2 *= -1}
+        if (a3 < 0) {a3 *= -1}
+        return Math.max(a1, a2, a3);
+    }
+
+    function equation(editor, i, x, y, r, g, b, a) {
+        var diff = [255, 255, 255, 255];
+        var equal = [0, 0, 0, 255];
+
+        if (y > 0) {
+            if (getD(getRGB(editor.frame, i - 4), r, g, b) > t) {return equal}
+        }
+        if (y < editor.realWidth) {
+            if (getD(getRGB(editor.frame, i + 4), r, g, b) > t) {return equal}
+        }
+        if (x > 0) {
+            if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) > t) {return equal}
+        }
+        if (x < editor.length) {
+            if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {return equal}
+        }
+
+        return diff;
+    }
+
+    function equation2(editor, last, frame, r, g, b, a) {
+        var result = [255, 255, 255, 255];
+        var equal = [0, 0, 0, 255];
+
+        var h = toHsl(frame[r], frame[g], frame[b]);
+
+        if (typeof frame[r - 4] == "number") {
+            var d = h - toHsl(
+                frame[r - 4],
+                frame[g - 4],
+                frame[b - 4]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r + 4] == "number") {
+            var d = h - toHsl(
+                frame[r + 4],
+                frame[g + 4],
+                frame[b + 4]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r - 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r - 4 * editor.width],
+                frame[g - 4 * editor.width], 
+                frame[b - 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r + 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r + 4 * editor.width],
+                frame[g + 4 * editor.width],
+                frame[b + 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r - 4 - 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r - 4 - 4 * editor.width],
+                frame[g - 4 - 4 * editor.width], 
+                frame[b - 4 - 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r + 4 - 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r + 4 - 4 * editor.width],
+                frame[g + 4 - 4 * editor.width], 
+                frame[b + 4 - 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r - 4 + 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r - 4 + 4 * editor.width],
+                frame[g - 4 + 4 * editor.width],
+                frame[b - 4 + 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        } else if (typeof frame[r + 4 + 4 * editor.width] == "number") {
+            var d = h - toHsl(
+                frame[r + 4 + 4 * editor.width],
+                frame[g + 4 + 4 * editor.width],
+                frame[b + 4 + 4 * editor.width]);
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+        }
+        return result;
+    }
+
+    function equation1(editor, last, frame, r, g, b, a) {
+        var equal = [0, 0, 0, 255];
+
+        //frame[r] = c * (frame[r] - 128) + 128;
+        //frame[g] = c * (frame[g] - 128) + 128;
+        //frame[b] = c * (frame[b] - 128) + 128;
+
+        //var result = [frame[r], frame[g], frame[b], 255];
+
+        var result = [255, 255, 255, 255];
+
+        //var m = (frame[r] + frame[g] + frame[b])/3;
+
+        //var result = [m, m, m, 255];
+
+        //return [frame[r], frame[g], frame[b], 255];
+  
+        if (typeof frame[r - 4] == "number") {
+            var d = frame[r] - frame[r - 4]
+                + frame[g] - frame[g - 4]
+                + frame[b] - frame[b - 4];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r + 4] == "number") {
+            var d = frame[r] - frame[r + 4]
+                + frame[g] - frame[g + 4]
+                + frame[b] - frame[b + 4];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r - 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r - 4 * editor.width]
+                + frame[g] - frame[g - 4 * editor.width]
+                + frame[b] - frame[b - 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r + 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r + 4 * editor.width]
+                + frame[g] - frame[g + 4 * editor.width]
+                + frame[b] - frame[b + 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r - 4 - 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r - 4 - 4 * editor.width]
+                + frame[g] - frame[g - 4 - 4 * editor.width]
+                + frame[b] - frame[b - 4 - 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r + 4 - 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r + 4 - 4 * editor.width]
+                + frame[g] - frame[g + 4 - 4 * editor.width]
+                + frame[b] - frame[b + 4 - 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r - 4 + 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r - 4 + 4 * editor.width]
+                + frame[g] - frame[g - 4 + 4 * editor.width]
+                + frame[b] - frame[b - 4 + 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        } else if (typeof frame[r + 4 + 4 * editor.width] == "number") {
+            var d = frame[r] - frame[r + 4 + 4 * editor.width]
+                + frame[g] - frame[g + 4 + 4 * editor.width]
+                + frame[b] - frame[b + 4 + 4 * editor.width];
+            if (d < 0) {d *= -1}
+            if (d < t) {result = equal}
+            //if (d < t) {return [d, d, d, 255]}
+        }
+        return result;
+    }
+
+    function loop(edit, fun) {
+        try {
+            edit.draw(fun);
+        } catch (e) {
+            alert(e.stack);
+        }
+
+        requestAnimationFrame(function() {
+            loop(edit, fun);
+        }); 
+    }
+
+    onButton("a", function() {
+        navigator.getUserMedia({video: true, audio: false},
+        function(stream) {
+            video.srcObject = stream;
+            video.onplay = function() {
+                var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
+
+                onButton("e", function() {
+                    alert(stream);
+                    var track = stream.getVideoTracks()[0];
+                    alert(track);
+                    var cap = track.getCapabilities();
+                    alert(JSON.stringify(cap));
+                });
+
+                loop(editor, equation);
+            }
+        }, function() {});
+    });
+
+    onButton("b", function() {
+        video.src = "/video.mp4";
+        video.onplay = function() {
+            var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
+
+            loop(editor, equation);
+        };
+    });
+
+    onButton("c", function() {
+        navigator.getUserMedia({video: {facingMode: "environment"}, audio: false},
+        function(stream) {
+            video.srcObject = stream;
+            video.onplay = function() {
+                var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
+
+                onButton("e", function() {
+                    alert(stream);
+                    var track = stream.getVideoTracks()[0];
+                    alert(track);
+                    var cap = track.getCapabilities();
+                    alert(JSON.stringify(cap));
+                    alert(cap.focusDistance)
+                });
+
+                loop(editor, equation);
+            }
+        }, function() {});
+    });
+
+    onButton("d", function() {
+        image.src = "/img.jpg";
+        image.onload = 
+        function() {
+            var editor = new Editor(image, image.naturalWidth, image.naturalHeight, canvas1, canvas2); 
+            
+            onButton("k", function() {editor.draw(equation)})
+            //loop(editor, equation);
+        };
+    });
+</script>
+</html>
