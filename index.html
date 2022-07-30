@@ -131,7 +131,7 @@
 </head>
 <body>
 	<div class="left">
-		<video id="webcam" autoplay="true" loop="true"></video>
+		<video id="webcam" muted="true" autoplay="true"></video>
 		<canvas id="parser"></canvas>
 		<canvas id="result"></canvas>
 	</div>
@@ -198,22 +198,22 @@
 		navigator.getUserMedia({video: true, audio: false},
 		function(stream) {
 			video.srcObject = stream;
-			// video.onplay = function() {
-			// 	var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
+			video.onplay = function() {
+				var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
 
-			// 	Util.Button("i", "info", function() {
-			// 		console.log(stream);
-			// 		var track = stream.getVideoTracks()[0];
-			// 		console.log(track);
-			// 		var cap = track.getCapabilities();
-			// 		console.log(JSON.stringify(cap));
-			// 	});
+				Util.Button("i", "info", function() {
+					console.log(stream);
+					var track = stream.getVideoTracks()[0];
+					console.log(track);
+					var cap = track.getCapabilities();
+					console.log(JSON.stringify(cap));
+				});
 
-			// 	Util.loop(function() {
-			// 		editor.draw();
-			// 	});
-			// }
-		}, function() {console.log("Error on Video")});
+				Util.loop(function() {
+					editor.draw();
+				});
+			}
+		}, function(e) {console.log("Error on Video", e)});
 	});
 
 	Util.Button("b", "Back Camera", function() {
