@@ -82,7 +82,8 @@
 	}
 
 	.right {
-		background-color: #191919;
+		background-color: #202020;
+		padding: 0;
 		display: flex;
 		flex: 0.3;
 		height: 100%;
@@ -157,6 +158,8 @@
 	}
 
 	.right .title {
+		padding: 0.75em;
+		margin-bottom: 1em;
 		background-color: #d00000;
 	}
 
@@ -220,6 +223,27 @@
 	Util.Slider("T", "w", "s", 255, 0, 1, function(value) {t = value});
 
 	function equation(editor, i, x, y, r, g, b) {
+		if (y > 0) {
+			//left
+
+		}
+		if (x > 0) {
+			//top
+			
+		}
+		if (y < editor.realWidth - 4) {
+			//right
+			
+		}
+		if (x < editor.height - 1) {
+			//bottom
+
+		}
+		
+		return [r, g, b];
+	}
+
+	function equation1(editor, i, x, y, r, g, b) {
 		var diff = [255, 255, 255];
 		var equal = [0, 0, 0];
 
@@ -238,7 +262,7 @@
 				return equal;
 			}
 		}
-		if (x < editor.length) {
+		if (x < editor.realLength) {
 			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {
 				return equal;
 			}

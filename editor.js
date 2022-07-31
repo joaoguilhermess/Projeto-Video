@@ -4,7 +4,7 @@ class Editor {
 		this.width = width;
 		this.height = height;
 		this.realWidth = width*4;
-		this.length = this.realWidth * this.height;
+		this.realLength = this.realWidth * this.height;
 
 		parser.width = width;
 		parser.height = height;
@@ -40,7 +40,7 @@ class Editor {
 				this,
 				i,
 				x,
-				i - x,
+				i - (x * this.realWidth),
 				frame.data[i],
 				frame.data[i + 1],
 				frame.data[i + 2],

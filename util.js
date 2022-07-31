@@ -101,7 +101,7 @@ class Util {
 					console.log(JSON.stringify(cap));
 				});
 
-				context.Button("f", "Fullscreen", function() {
+				context.Button("q", "Fullscreen", function() {
 					c2.click();
 				});
 
