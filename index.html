@@ -223,24 +223,36 @@
 	Util.Slider("T", "w", "s", 255, 0, 1, function(value) {t = value});
 
 	function equation(editor, i, x, y, r, g, b) {
+		var diff = [255, 255, 255];
+		var equal = [0, 0, 0];
+
 		if (y > 0) {
 			//left
-			
+			if (getD(getRGB(editor.frame, i - 4), r, g, b) > t) {
+				return equal;
+			}
 		}
 		if (x > 0) {
 			//top
-			
+			if (getD(getRGB(editor.frame, i + 4), r, g, b) > t) {
+				return equal;
+			}
 		}
 		if (y < editor.realWidth - 4) {
 			//right
-			
+			if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) > t) {
+				return equal;
+			}
 		}
 		if (x < editor.height - 1) {
 			//bottom
-			
+			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {
+				return equal;
+			}
 		}
 
-		return [r, g, b];
+		return diff;
+		// return [r, g, b];
 	}
 
 	function equation1(editor, i, x, y, r, g, b) {
