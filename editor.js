@@ -44,13 +44,11 @@ class Editor {
 				frame.data[i],
 				frame.data[i + 1],
 				frame.data[i + 2],
-				frame.data[i + 3]
 			);
 
 			temp.data[i] = result[0];
 			temp.data[i + 1] = result[1];
 			temp.data[i + 2] = result[2];
-			temp.data[i + 3] = result[3];
 		}
 
 		this.updateFrame(temp);

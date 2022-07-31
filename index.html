@@ -56,10 +56,6 @@
 		flex-direction: row;
 	}
 
-	video, canvas, img {
-		border-style: solid;
-		border-width: 1px;
-	}
 
 	.left, .right {
 		padding: 0.5em;
@@ -71,6 +67,18 @@
 		height: 100%;
 		flex-direction: column;
 		overflow-y: auto;
+		justify-content: center;
+		align-items: center;
+	}
+
+	video, canvas {
+		margin: 0;
+		height: calc(100%/3);
+		background-color: #141414;
+		border-bottom-style: solid;
+		border-bottom-width: 3.5px;
+		border-bottom-color: #a00000;
+		box-shadow: 0 10px 10px rgba(0,0,0,0.22);
 	}
 
 	.right {
@@ -82,37 +90,70 @@
 		overflow-y: auto;
 	}
 
-	.right .button, .right .slider, .right .title, video, canvas, img {
+	.right .button, .right .slider, .right .title, .right .columns {
 		width: 100%;
 		padding: 0.5em;
 	}
 
-	.right .rows {
-		width: 100%;
+	.right .columns {
 		display: flex;
-		flex-direction: row;
+		padding-left: 2em;
+		padding-right: 2em;
+		flex-direction: column;
 	}
 
 	.right .button {
 		flex: 0.5;
-		background-color: #191919;
+		cursor: pointer;
+		margin-bottom: 1.5em;
+		background-color: #252525;
 		color: #c0c0c0;
-		margin: 0.5em;
 		border-bottom-style: solid;
 		border-bottom-width: 3.5px;
 		border-bottom-color: #a00000;
-		box-shadow: 0 10px 10px rgba(0,0,0,0.22);
 		transform: none;
+		box-shadow: 0 10px 10px rgba(0,0,0,0.22);
 	}
 
 	.right .button:hover, .right .button:focus {
-		background-color: #222222;
 		color: #f0f0f0;
+		background-color: #222222;
 		border-bottom-color: #f00000;
 	}
 
 	.right .button:active {
 		animation-name: press;
+	}
+
+	.right .sliderbox {
+		display: flex;
+		margin-bottom: 1.5em;
+	}
+
+	.right .sliderbox .slider {
+		-webkit-appearance: none;
+		flex: 1;
+		margin: 0;
+		background-color: #252525;
+		box-shadow: 0 10px 10px rgba(0,0,0,0.22);
+	}
+
+	.right .sliderbox .slider::-webkit-slider-runnable-track {
+		-webkit-appearance: none;
+		height: 1em;
+	}
+
+	.right .sliderbox .slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		cursor: pointer;
+		height: 1em;
+		width: 1em;
+		border-radius: 25%;
+		background-color: #f00000;
+	}
+
+	.right .sliderbox .text {
+		padding: 0.5em;
 	}
 
 	.right .title {
@@ -124,9 +165,6 @@
 		color: #303030;
 	}
 
-	.right .slider {
-		flex: 1 1;
-	}
 </style>
 </head>
 <body>
@@ -137,7 +175,7 @@
 	</div>
 	<div class="right">
 		<div class="title">Projeto-Video</div>
-		<div class="rows"></div>
+		<div class="columns"></div>
 	</div>
 </body>
 <script src="/editor.js"></script>
@@ -145,14 +183,25 @@
 <script>
 	const LeftContainer = document.querySelector(".left");
 	const RightContainer = document.querySelector(".right");
-	const RowsContainer = RightContainer.querySelector(".rows");
+	const ColumnsContainer = RightContainer.querySelector(".columns");
 
 	const video = LeftContainer.querySelector("#webcam");
-	const image = LeftContainer.querySelector("#picture");
 	const canvas1 = LeftContainer.querySelector("#parser");
 	const canvas2 = LeftContainer.querySelector("#result");
 
-    Util.setContainer(RowsContainer);
+	for (var i = 0; i < LeftContainer.children.length; i++) {
+		LeftContainer.children[i].onclick = function(event) {
+			if (event.target.full) {
+				event.target.full = false;
+				document.exitFullscreen();
+			} else {
+				event.target.full = true;
+				event.target.requestFullscreen();
+			}
+		};
+	}
+
+    Util.setContainer(ColumnsContainer);
 
 	function getRGB(frame, i) {
 		return [frame[i], frame[i + 1], frame[i + 2]];
@@ -166,28 +215,32 @@
 		);
 	}
 
-	function equation(editor, i, x, y, r, g, b, a) {
-		var diff = [255, 255, 255, 255];
-		var equal = [0, 0, 0, 255];
+	var t = 0;
+
+	Util.Slider("T", "w", "s", 255, 0, 1, function(value) {t = value});
+
+	function equation(editor, i, x, y, r, g, b) {
+		var diff = [255, 255, 255];
+		var equal = [0, 0, 0];
 
 		if (y > 0) {
 			if (getD(getRGB(editor.frame, i - 4), r, g, b) > t) {
-				return equal
+				return equal;
 			}
 		}
 		if (y < editor.realWidth) {
 			if (getD(getRGB(editor.frame, i + 4), r, g, b) > t) {
-				return equal
+				return equal;
 			}
 		}
 		if (x > 0) {
 			if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) > t) {
-				return equal
+				return equal;
 			}
 		}
 		if (x < editor.length) {
 			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {
-				return equal
+				return equal;
 			}
 		}
 
@@ -195,47 +248,11 @@
 	}
 
 	Util.Button("f", "Frontal Camera", function() {
-		navigator.getUserMedia({video: true, audio: false},
-		function(stream) {
-			video.srcObject = stream;
-			video.onplay = function() {
-				var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
-
-				Util.Button("i", "info", function() {
-					console.log(stream);
-					var track = stream.getVideoTracks()[0];
-					console.log(track);
-					var cap = track.getCapabilities();
-					console.log(JSON.stringify(cap));
-				});
-
-				Util.loop(function() {
-					editor.draw();
-				});
-			}
-		}, function(e) {console.log("Error on Video", e)});
+		Util.Video(navigator, video, {video: true, audio: false}, equation, canvas1, canvas2);
 	});
 
 	Util.Button("b", "Back Camera", function() {
-		navigator.getUserMedia({video: {facingMode: "environment"}, audio: false},
-		function(stream) {
-			video.srcObject = stream;
-			video.onplay = function() {
-				var editor = new Editor(video, video.videoWidth, video.videoHeight, canvas1, canvas2);
-
-				Util.Button("i", "info", function() {
-					console.log(stream);
-					var track = stream.getVideoTracks()[0];
-					console.log(track);
-					var cap = track.getCapabilities();
-					console.log(JSON.stringify(cap));
-				});
-
-				Util.loop(function() {
-					editor.draw();
-				});
-			}
-		}, function() {console.log("Error on Video")});
+		Util.Video(navigator, video, {video: {facingMode: "environment"}, audio: false}, equation, canvas1, canvas2);
 	});
 </script>
 </html>
