@@ -16,6 +16,7 @@
 		transition-duration: 0.25s;
 		animation-duration: 0.25s;
 		box-sizing: border-box;
+		margin: 0;
 	}
 
 	@keyframes press {
@@ -47,21 +48,18 @@
 		border: 0;
 		outline: 0;
 		margin: 0;
+		padding: 0;
 	}
 
 	body {
 		background-color: #181818;
 		color: #f0f0f0;
 		display: flex;
-		flex-direction: row;
-	}
-
-
-	.left, .right {
-		padding: 0.5em;
+		flex-direction: column;
 	}
 
 	.left {
+		padding: 0.5em;
 		display: flex;
 		flex: 0.7;
 		height: 100%;
@@ -73,8 +71,8 @@
 
 	video, canvas {
 		margin: 0;
-		height: calc(100%/3);
-		background-color: #141414;
+		height: calc(99%/3);
+		background-color: #242424;
 		border-bottom-style: solid;
 		border-bottom-width: 3.5px;
 		border-bottom-color: #a00000;
@@ -168,17 +166,25 @@
 		color: #303030;
 	}
 
+	.main {
+		display: flex;
+		flex-direction: row;
+		width: 100%;
+		height: calc(100% - 4em);
+	}
 </style>
 </head>
 <body>
-	<div class="left">
-		<video id="webcam" muted="true" autoplay="true"></video>
-		<canvas id="parser"></canvas>
-		<canvas id="result"></canvas>
-	</div>
-	<div class="right">
-		<div class="title">Projeto-Video</div>
-		<div class="columns"></div>
+	<div class="main">
+		<div class="left">
+			<video id="webcam" muted="true" autoplay="true"></video>
+			<canvas id="parser"></canvas>
+			<canvas id="result"></canvas>
+		</div>
+		<div class="right">
+			<div class="title">Projeto-Video</div>
+			<div class="columns"></div>
+		</div>
 	</div>
 </body>
 <script src="/editor.js"></script>
@@ -204,7 +210,7 @@
 		};
 	}
 
-    Util.setContainer(ColumnsContainer);
+	Util.setContainer(ColumnsContainer);
 
 	function getRGB(frame, i) {
 		return [frame[i], frame[i + 1], frame[i + 2]];
@@ -218,68 +224,73 @@
 		);
 	}
 
-	var t = 0;
+	var t = 0; if (localStorage["T"]) {t = localStorage["T"]}
 
-	Util.Slider("T", "w", "s", 255, 0, 1, function(value) {t = value});
+	Util.Slider("T", "w", "s", 255, 1, 1, function(value) {
+		t = parseInt(value);
+		localStorage["T"] = value.toString();
+	}, localStorage["T"]);
+
+	var l = 1; if (localStorage["L"]) {l = localStorage["L"]}
+	var lr = l * 4;
+	var lc = l - 1;
+	Util.Slider("L", "y", "h", 50, 1, 1, function(value) {
+		l = parseInt(value);
+		lr = l * 4;
+		lc = l - 1;
+		localStorage["L"] = value.toString();
+	}, localStorage["L"]);
+
+	var equal = [0, 0, 0];
+	var diff = [255, 255, 255];
 
 	function equation(editor, i, x, y, r, g, b) {
-		var diff = [255, 255, 255];
-		var equal = [0, 0, 0];
+		var lrw = editor.realWidth * l;
 
-		if (y > 0) {
-			//left
-			if (getD(getRGB(editor.frame, i - 4), r, g, b) > t) {
+		if (y > lc) { //left
+			if (getD(getRGB(editor.frame, i - lr), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (x > 0) {
-			//top
-			if (getD(getRGB(editor.frame, i + 4), r, g, b) > t) {
+		if (x > lc) { //top
+			if (getD(getRGB(editor.frame, i - lrw), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (y < editor.realWidth - 4) {
-			//right
-			if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) > t) {
+		if (y < editor.realWidth - lr) { //right
+			if (getD(getRGB(editor.frame, i + lr), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (x < editor.height - 1) {
-			//bottom
-			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {
+		if (x < editor.height - l) { //bottom
+			if (getD(getRGB(editor.frame, i + lrw), r, g, b) < t) {
 				return equal;
 			}
 		}
-
 		return diff;
-		// return [r, g, b];
 	}
 
 	function equation1(editor, i, x, y, r, g, b) {
-		var diff = [255, 255, 255];
-		var equal = [0, 0, 0];
-
-		if (y > 0) {
-			if (getD(getRGB(editor.frame, i - 4), r, g, b) > t) {
+		if (y > 0) { //left
+			if (getD(getRGB(editor.frame, i - 4), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (y < editor.realWidth) {
-			if (getD(getRGB(editor.frame, i + 4), r, g, b) > t) {
+		if (x > 0) { //top
+			if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (x > 0) {
-			if (getD(getRGB(editor.frame, i - editor.realWidth), r, g, b) > t) {
+		if (y < editor.realWidth - 4) { //right
+			if (getD(getRGB(editor.frame, i + 4), r, g, b) < t) {
 				return equal;
 			}
 		}
-		if (x < editor.realLength) {
-			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) > t) {
+		if (x < editor.height - 1) { //bottom
+			if (getD(getRGB(editor.frame, i + editor.realWidth), r, g, b) < t) {
 				return equal;
 			}
 		}
-
 		return diff;
 	}
 

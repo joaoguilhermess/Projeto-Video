@@ -1,5 +1,6 @@
 class Util {
 	static Container;
+	static scale = 1;
 
 	static setContainer(container) {
 		this.Container = container;
@@ -7,7 +8,7 @@ class Util {
 
 	static loop(fun) {
 		try {
-			fun()
+			fun();
 		} catch (e) {
 			console.log(e);
 		}
@@ -18,7 +19,7 @@ class Util {
 		});
 	}
 
-	static Slider(n, sum, sub, max, min, step, callback) {
+	static Slider(n, sum, sub, max, min, step, callback, val) {
 		var box = document.createElement("div");
 		var slider = document.createElement("input");
 		var name = document.createElement("div");
@@ -29,7 +30,12 @@ class Util {
 		slider.min = min;
 		slider.step = step;
 		slider.className = "slider";
-		slider.value = 0;
+		if (val) {
+			slider.value = val;
+		} else {
+			slider.value = 0;
+
+		}
 
 		box.className = "sliderbox";
 
@@ -75,14 +81,20 @@ class Util {
 
 		button.onclick = callback;
 
-		document.addEventListener("keypress", function(event) {
-			if (event.key == key) {
-				button.style.animationName = "press";
-				button.click();
-			}
+		this.Key(key, function() {
+			button.style.animationName = "press";
+			button.click();
 		});
 
 		this.Container.appendChild(button);
+	}
+
+	static Key(key, callback) {
+		document.addEventListener("keypress", function(event) {
+			if (event.key == key) {
+				callback();
+			}
+		});
 	}
 
 	static Video(n, video, constraints, equation, c1, c2) {
@@ -91,7 +103,7 @@ class Util {
 		function(stream) {
 			video.srcObject = stream;
 			video.onplay = function() {
-				var editor = new Editor(video, video.videoWidth, video.videoHeight, c1, c2);
+				var editor = new Editor(video, video.videoWidth, video.videoHeight, context.scale, c1, c2);
 
 				context.Button("i", "Info", function() {
 					console.log(stream);
@@ -99,6 +111,19 @@ class Util {
 					console.log(track);
 					var cap = track.getCapabilities();
 					console.log(JSON.stringify(cap));
+					track.applyConstraints({focusMode: "manual"});
+					context.Slider("Zoom", "z", "x",
+						cap.zoom.max,
+						cap.zoom.min,
+						cap.zoom.step,
+						function (value) {
+							console.log(JSON.stringify(track.getSettings()));
+							console.log(value);
+							track.applyConstraints(
+								{focusDistance: value}
+							).catch(function(e) {console.log(e.stack)});
+						}
+					);
 				});
 
 				context.Button("q", "Fullscreen", function() {
